@@ -5,3 +5,4 @@ aiohttp
 python-dotenv
 flask
 boto3
+requests
