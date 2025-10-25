@@ -4,3 +4,4 @@ ffmpeg-python
 aiohttp
 python-dotenv
 flask
+boto3
