@@ -3,3 +3,4 @@ tgcrypto
 ffmpeg-python
 aiohttp
 python-dotenv
+flask
