@@ -3,6 +3,8 @@ import uuid
 import subprocess
 import boto3
 from pyrogram import Client, filters
+
+# -------------------
 API_ID = int(os.environ.get("API_ID", 23907288))
 API_HASH = os.environ.get("API_HASH", "f9a47570ed19aebf8eb0f0a5ec1111e5")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8387124222:AAE0jNJRLsoWz887kUgPbAesemH8VfREz_M")
@@ -27,7 +29,6 @@ r2_client = boto3.client(
     region_name="auto"  # region doesn't matter for R2
 )
 bucket_name = "reeva-erp"
-
 # -------------------
 # Convert Command
 # -------------------
@@ -39,6 +40,8 @@ async def convert_to_hls(client, message):
     
     video_url = message.command[1]
     job_id = str(uuid.uuid4())
+    
+    # Create folder for this job
     os.makedirs(job_id, exist_ok=True)
 
     qualities = {
@@ -54,35 +57,43 @@ async def convert_to_hls(client, message):
         # Convert each quality
         for idx, (q, res) in enumerate(qualities.items(), 1):
             await progress_msg.edit_text(f"Converting {q} ({idx}/{len(qualities)})...")
+            
+            # Create subfolder for quality
+            q_dir = os.path.join(job_id, q)
+            os.makedirs(q_dir, exist_ok=True)
+            
             cmd = [
-                "ffmpeg", "-i", video_url,
+                "ffmpeg",
+                "-i", video_url,
                 "-vf", f"scale={res}",
-                "-c:a", "aac", "-c:v", "h264",
+                "-c:a", "aac",
+                "-c:v", "h264",
                 "-hls_time", "10",
                 "-hls_list_size", "0",
-                f"{job_id}/{q}.m3u8"
+                f"{q_dir}/{q}.m3u8"
             ]
             subprocess.run(cmd, check=True)
+
+        await progress_msg.edit_text("Uploading to Cloudflare R2...")
 
         # Upload all .ts and .m3u8 files to R2
         for root, dirs, files in os.walk(job_id):
             for file in files:
                 local_path = os.path.join(root, file)
-                r2_path = f"{job_id}/{file}"
-                r2_client.upload_file(local_path, bucket_name, r2_path, ExtraArgs={"ACL": "public-read"})
+                r2_path = os.path.relpath(local_path, job_id)
+                r2_client.upload_file(local_path, bucket_name, f"{job_id}/{r2_path}", ExtraArgs={"ACL": "public-read"})
 
         # Create master playlist pointing to R2 URLs
-        master_file = f"{job_id}/master.m3u8"
+        master_file = os.path.join(job_id, "master.m3u8")
         with open(master_file, "w") as f:
             f.write("#EXTM3U\n#EXT-X-VERSION:3\n")
-            for q, res in qualities.items():
-                f.write(f"#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION={res}\n")
-                f.write(f"{os.environ.get('R2_PUBLIC_URL')}/{job_id}/{q}.m3u8\n")
+            for q in qualities.keys():
+                f.write(f"#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION={qualities[q]}\n")
+                f.write(f"{os.environ.get('R2_PUBLIC_URL')}/{job_id}/{q}/{q}.m3u8\n")
 
         # Upload master playlist
         r2_client.upload_file(master_file, bucket_name, f"{job_id}/master.m3u8", ExtraArgs={"ACL": "public-read"})
 
-        # Send the master URL
         master_url = f"{os.environ.get('R2_PUBLIC_URL')}/{job_id}/master.m3u8"
         await progress_msg.edit_text(f"✅ Conversion completed!\nMaster URL:\n{master_url}")
 
