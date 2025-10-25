@@ -42,7 +42,7 @@ load_dotenv()
 API_ID = int(os.environ.get("API_ID", 23907288))
 API_HASH = os.environ.get("API_HASH", "f9a47570ed19aebf8eb0f0a5ec1111e5")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8387124222:AAE0jNJRLsoWz887kUgPbAesemH8VfREz_M")
-BASE_URL = os.environ.get("BASE_URL", "")  # e.g. https://abcd.ngrok.io/hls
+BASE_URL = os.environ.get("BASE_URL", "https://imgcapapi-a60f52761a9b.herokuapp.com")  # e.g. https://abcd.ngrok.io/hls
 
 # Directory where hls jobs will be written
 BASE_OUTPUT = Path("./hls_output")
