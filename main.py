@@ -138,9 +138,7 @@ bot = Client("hls_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 @bot.on_message(filters.command("start") & filters.private)
 async def start_cmd(client: Client, message: Message):
-    await message.reply_text("Hello! Send /convert <direct-video-url> [qualities]
-Example: /convert https://example.com/video.mp4 360,480,720")
-
+    await message.reply_text("Hello! Send /convert <direct-video-url> [qualities]")
 
 @bot.on_message(filters.command("convert") & filters.private)
 async def convert_cmd(client: Client, message: Message):
